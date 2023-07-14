@@ -1,34 +1,50 @@
-package flynnlies.nbt_food_effects;
+package flynnlies.nbt_food_effects.mixin;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.effect.MobEffect;
+import flynnlies.nbt_food_effects.NBTFoodEffects;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.util.RandomSource;
+import net.minecraft.util.Tuple;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.food.FoodData;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
-import net.minecraft.core.Registry;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.List;
 
-@Mixin(FoodData.class)
+// /give @p beef{CustomPotionEffects:[{Effect:"minecraft:levitation", Duration:300, Chance: 0.5}]}
+
+@Mixin(LivingEntity.class)
 public abstract class FoodDataMixin {
 
-    @Inject(method = "eat(Lnet/minecraft/world/item/Item;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/LivingEntity;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/food/FoodData;eat(IF)V", shift = At.Shift.AFTER))
-    protected void applyEffectFromNBT(Item p_38713_, ItemStack p_38714_, LivingEntity entity, CallbackInfo ci){
-        String effect_id = "minecraft:levitation";
-        MobEffect effect = Registry.MOB_EFFECT.get(new ResourceLocation(effect_id));
-        if (effect != null) {
-            entity.addEffect(new MobEffectInstance(effect, 100));
-        } else {
-            Logger.getAnonymousLogger().log(Level.INFO, "Effect '" + effect_id + "' does not exist.");
+    @Inject(method = "addEatEffect(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;)V", at = @At("TAIL"))
+    protected void applyEffectFromNBT(ItemStack stack, Level level, LivingEntity entity, CallbackInfo ci){
+        if (!stack.isEdible()) return;
+        if (stack.hasTag()){
+            CompoundTag tag = stack.getTag();
+            if (tag != null && tag.contains(NBTFoodEffects.NBTID, 9)){
+                RandomSource source = entity.getRandom();
+
+                ListTag foodEffectsTag = tag.getList(NBTFoodEffects.NBTID, 10);
+                List<Tuple<MobEffectInstance, Float>> effects = NBTFoodEffects.getEffects(foodEffectsTag);
+
+                for (Tuple<MobEffectInstance, Float> effectTuple : effects) {
+                    MobEffectInstance effectInstance = effectTuple.getA();
+                    float chance = effectTuple.getB();
+
+                    if (source.nextFloat()%1 < chance){
+                        entity.addEffect(effectInstance);
+
+                    }
+                }
+
+            }
         }
+
 
     }
 
