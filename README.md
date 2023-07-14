@@ -17,7 +17,7 @@ This cookie will have levitation for 0 ticks. I'd by the way recommend using `Ef
 ```
 /give @p cooked_chicken{CustomPotionEffects:[{Id:25, Effect:"mod:mod_effect", "forge:id":"minecraft:haste"}]}
 ```
-Will always give a cooked chicken with a the `mod_effect` from the mod `mod`. If that does not exist will give it haste. Only if neither `Effect` nor `forge:id` are valid will the effct from `Id` be applied.
+Will always give a cooked chicken with a the `mod_effect` from the mod `mod`. If that does not exist will give it haste. Only if neither `Effect` nor `forge:id` are valid will the effect from `Id` be applied.
 
 And finally here is an example with all relevant options that exist:
 ```
