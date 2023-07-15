@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
@@ -19,10 +20,10 @@ import java.util.List;
 // /give @p beef{CustomPotionEffects:[{Effect:"minecraft:levitation", Duration:300, Chance: 0.5}]}
 
 @Mixin(LivingEntity.class)
-public abstract class FoodDataMixin {
+public abstract class LivingEntityMixin {
 
     @Inject(method = "addEatEffect(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;)V", at = @At("TAIL"))
-    protected void applyEffectFromNBT(ItemStack stack, Level level, LivingEntity entity, CallbackInfo ci){
+    protected void addEffectFromNBT(ItemStack stack, Level level, LivingEntity entity, CallbackInfo ci){
         if (!stack.isEdible()) return;
         if (stack.hasTag()){
             CompoundTag tag = stack.getTag();
@@ -36,9 +37,8 @@ public abstract class FoodDataMixin {
                     MobEffectInstance effectInstance = effectTuple.getA();
                     float chance = effectTuple.getB();
 
-                    if (source.nextFloat()%1 < chance){
-                        entity.addEffect(effectInstance);
-
+                    if (!level.isClientSide && source.nextFloat() % 1 < chance){
+                        entity.addEffect(new MobEffectInstance(effectInstance));
                     }
                 }
 
@@ -48,6 +48,13 @@ public abstract class FoodDataMixin {
 
     }
 
-
+    @Redirect(method = "curePotionEffects(Lnet/minecraft/world/item/ItemStack;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/effect/MobEffectInstance;isCurativeItem(Lnet/minecraft/world/item/ItemStack;)Z"), remap = false)
+    public boolean isCurativeItem(MobEffectInstance instance, ItemStack stack) {
+        NBTFoodEffects.LOGGER.debug(String.valueOf(stack.getTag()));
+        return instance.getCurativeItems().stream().anyMatch(e -> {
+            CompoundTag tag = e.getTag();
+            return e.sameItem(stack) && (tag == null || tag.equals(stack.getTag())); // TODO: Make it so that you can match any value, greater, lesser, ...
+        });
+    }
 
 }

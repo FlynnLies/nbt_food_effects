@@ -29,7 +29,6 @@ public class NBTFoodEffects {
     public static final String MODID = "nbt_food_effects";
     public static final String NBTID = "CustomPotionEffects";
     public static final Logger LOGGER = LogUtils.getLogger();
-    private static final Component NO_EFFECT = Component.translatable("effect.none").withStyle(ChatFormatting.GRAY);
 
     private static final List<Tuple<MobEffectInstance, Float>> EMPTY = new ArrayList<>();
 
@@ -42,7 +41,7 @@ public class NBTFoodEffects {
             MobEffectInstance effect = load(tag);
             if (effect != null){
                 effects.add(new Tuple<>(
-                        new MobEffectInstance(effect), // maybe avoid the timer getting stuck at 0:0
+                        effect,
                         getChance(food_effects, i)
                 ));
             } else {
@@ -87,15 +86,15 @@ public class NBTFoodEffects {
         List<Tuple<MobEffectInstance, Float>> list = getEffects(listtag);
         List<Pair<Attribute, AttributeModifier>> list1 = Lists.newArrayList();
         if (list != null && !list.isEmpty()) {
-            for(int i = 0; i<list.size(); i++) {
-                MobEffectInstance mobeffectinstance = list.get(i).getA();
-                float effectchance = list.get(i).getB();
+            for (Tuple<MobEffectInstance, Float> tuple : list) {
+                MobEffectInstance mobeffectinstance = tuple.getA();
+                float chance = tuple.getB();
 
                 MutableComponent mutablecomponent = Component.translatable(mobeffectinstance.getDescriptionId());
                 MobEffect mobeffect = mobeffectinstance.getEffect();
                 Map<Attribute, AttributeModifier> map = mobeffect.getAttributeModifiers();
                 if (!map.isEmpty()) {
-                    for(Map.Entry<Attribute, AttributeModifier> entry : map.entrySet()) {
+                    for (Map.Entry<Attribute, AttributeModifier> entry : map.entrySet()) {
                         AttributeModifier attributemodifier = entry.getValue();
                         AttributeModifier attributemodifier1 = new AttributeModifier(attributemodifier.getName(), mobeffect.getAttributeModifierValue(mobeffectinstance.getAmplifier(), attributemodifier), attributemodifier.getOperation());
                         list1.add(new Pair<>(entry.getKey(), attributemodifier1));
@@ -110,17 +109,17 @@ public class NBTFoodEffects {
                     mutablecomponent = Component.translatable("potion.withDuration", mutablecomponent, MobEffectUtil.formatDuration(mobeffectinstance, p_43558_));
                 }
 
-                if (effectchance < 0.001) {
+                if (chance < 0.001) {
                     mutablecomponent.append(" <0.1%");
-                } else if (effectchance < 0.1) {
-                    double percentage = effectchance * 100;
+                } else if (chance < 0.1) {
+                    double percentage = chance * 100;
                     if (percentage % 1.0 > 0.0) {
                         mutablecomponent.append(String.format(" %.1f%%", percentage));
                     } else {
                         mutablecomponent.append(String.format(" %.0f%%", percentage));
                     }
-                } else if (effectchance < 1) {
-                    mutablecomponent.append(" " + (int) (effectchance * 100) + "%");
+                } else if (chance < 1) {
+                    mutablecomponent.append(" " + (int) (chance * 100) + "%");
                 }
 
 
@@ -153,5 +152,7 @@ public class NBTFoodEffects {
         }
 
     }
+
+
 }
 
