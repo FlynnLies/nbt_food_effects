@@ -13,8 +13,10 @@ import net.minecraft.util.Tuple;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffectUtil;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
@@ -22,6 +24,7 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 
 @Mod(NBTFoodEffects.MODID)
@@ -30,9 +33,10 @@ public class NBTFoodEffects {
     public static final String NBTID = "CustomPotionEffects";
     public static final Logger LOGGER = LogUtils.getLogger();
 
+
     private static final List<Tuple<MobEffectInstance, Float>> EMPTY = new ArrayList<>();
 
-    public static List<Tuple<MobEffectInstance, Float>> getEffects(ListTag food_effects){
+    public static List<Tuple<MobEffectInstance, Float>> getEffects(ListTag food_effects, boolean includeModifiers){
         if (food_effects.getElementType() != 10 || food_effects.isEmpty()) return EMPTY;
 
         List<Tuple<MobEffectInstance, Float>> effects = new ArrayList<>(food_effects.size());
@@ -40,7 +44,7 @@ public class NBTFoodEffects {
             CompoundTag tag = food_effects.getCompound(i);
             MobEffectInstance effect = load(tag);
             if (effect != null){
-                effects.add(new Tuple<>(
+                if (effect.getDuration() > 0 || includeModifiers) effects.add(new Tuple<>(
                         effect,
                         getChance(food_effects, i)
                 ));
@@ -50,6 +54,13 @@ public class NBTFoodEffects {
         }
 
         return effects;
+    }
+
+    public static List<Tuple<MobEffectInstance, Float>> getEffects(ItemStack stack, boolean includeModifiers){
+        CompoundTag tag = stack.getTag();
+        if (tag == null || !tag.contains(NBTFoodEffects.NBTID, 9)) return new ArrayList<>();
+        ListTag list = tag.getList(NBTFoodEffects.NBTID, 10);
+        return NBTFoodEffects.getEffects(list, includeModifiers);
     }
 
     private static float getChance(ListTag food_effects, int i){
@@ -75,7 +86,8 @@ public class NBTFoodEffects {
             }
         }
 
-        return mobeffect == null ? null : MobEffectInstance.loadSpecifiedEffect(mobeffect, p_19561_);
+        MobEffectInstance instance = mobeffect == null ? null : MobEffectInstance.loadSpecifiedEffect(mobeffect, p_19561_);;
+        return instance;
     }
 
     public static void addEffectTooltip(ItemStack stack, List<Component> p_43557_, float p_43558_) {
@@ -83,7 +95,7 @@ public class NBTFoodEffects {
         if (tag == null || !tag.contains(NBTID, 9)) return;
         ListTag listtag = tag.getList(NBTID, 10);
 
-        List<Tuple<MobEffectInstance, Float>> list = getEffects(listtag);
+        List<Tuple<MobEffectInstance, Float>> list = getEffects(listtag, false);
         List<Pair<Attribute, AttributeModifier>> list1 = Lists.newArrayList();
         if (list != null && !list.isEmpty()) {
             for (Tuple<MobEffectInstance, Float> tuple : list) {
